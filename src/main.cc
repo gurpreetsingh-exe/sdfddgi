@@ -7,6 +7,9 @@
 #include "Shader.hh"
 #include "VertexArray.hh"
 #include "Window.hh"
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 #include <cstdint>
 #include <iostream>
 #include <unordered_map>
@@ -57,6 +60,18 @@ int main() {
   if (glewInit() == GLEW_OK) {
     std::cout << "GL version: " << glGetString(GL_VERSION) << std::endl;
   }
+
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO();
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+  io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+  ImGui::StyleColorsDark();
+  ImGui_ImplGlfw_InitForOpenGL(window.getHandle(), true);
+  ImGui_ImplOpenGL3_Init("#version 450");
+
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback(MessageCallback, 0);
 
@@ -97,11 +112,84 @@ int main() {
   Shader shader(vert, frag);
   shader.bind();
 
-  window.isRunning([&indices] {
+  window.isRunning([&indices, &io] {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    static bool opt_fullscreen = true;
+    static bool opt_padding = false;
+    static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+
+    ImGuiWindowFlags window_flags =
+        ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+    if (opt_fullscreen) {
+      const ImGuiViewport* viewport = ImGui::GetMainViewport();
+      ImGui::SetNextWindowPos(viewport->WorkPos);
+      ImGui::SetNextWindowSize(viewport->WorkSize);
+      ImGui::SetNextWindowViewport(viewport->ID);
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+      window_flags |= ImGuiWindowFlags_NoTitleBar |
+                      ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+                      ImGuiWindowFlags_NoMove;
+      window_flags |=
+          ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+    }
+
+    if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+      window_flags |= ImGuiWindowFlags_NoBackground;
+
+    if (!opt_padding)
+      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    bool p_open = true;
+
+    ImGui::Begin("DockSpace", &p_open, window_flags);
+
+    if (!opt_padding)
+      ImGui::PopStyleVar();
+
+    if (opt_fullscreen)
+      ImGui::PopStyleVar(2);
+
+    if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
+      ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+      ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+    }
+
+    ImGui::End();
+
+    ImGui::Begin("Debug");
+    ImGui::Text("Delta Time: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
+    ImGui::End();
+
+    ImGui::Begin("Properties");
+    ImGui::End();
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::Begin("Viewport");
+
+    ImGui::End();
+    ImGui::PopStyleVar();
+
     glEnable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
     glDisable(GL_DEPTH_TEST);
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+      GLFWwindow* backup_current_context = glfwGetCurrentContext();
+      ImGui::UpdatePlatformWindows();
+      ImGui::RenderPlatformWindowsDefault();
+      glfwMakeContextCurrent(backup_current_context);
+    }
   });
+
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
 }

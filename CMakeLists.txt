@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.7)
 project(sdfddgi VERSION 1.0)
 set(OpenGL_GL_PREFERENCE GLVND)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 set(IMGUI_DIR vendor/imgui)
 
 set(SOURCES
