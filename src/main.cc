@@ -1,12 +1,15 @@
 // clang-format off
 #include <GL/glew.h>
 // clang-format on
+#define TINYOBJLOADER_IMPLEMENTATION
+#include "../vendor/tiny_obj_loader.h"
 #include "Buffer.hh"
 #include "Shader.hh"
 #include "VertexArray.hh"
 #include "Window.hh"
 #include <cstdint>
 #include <iostream>
+#include <unordered_map>
 #include <vector>
 
 static void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
@@ -19,6 +22,36 @@ static void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
           message);
 }
 
+void loadObj(const char* filepath, std::vector<Vertex>& vertices,
+             std::vector<uint32_t>& indices) {
+  tinyobj::ObjReader reader;
+  tinyobj::ObjReaderConfig config;
+  reader.ParseFromFile(filepath, config);
+
+  if (!reader.Valid()) {
+    throw std::runtime_error(reader.Warning() + reader.Error());
+  }
+
+  std::unordered_map<Vertex, uint32_t> uniqueVertices;
+  const auto& attributes = reader.GetAttrib();
+
+  for (const auto& shape : reader.GetShapes()) {
+    for (const auto& index : shape.mesh.indices) {
+      Vertex vertex;
+      vertex.pos = {attributes.vertices[3 * index.vertex_index + 0],
+                    attributes.vertices[3 * index.vertex_index + 2],
+                    attributes.vertices[3 * index.vertex_index + 1]};
+
+      if (uniqueVertices.count(vertex) == 0) {
+        uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
+        vertices.push_back(vertex);
+      }
+
+      indices.push_back(uniqueVertices[vertex]);
+    }
+  }
+}
+
 int main() {
   Window window(640, 640, "sdfddgi");
   if (glewInit() == GLEW_OK) {
@@ -27,19 +60,11 @@ int main() {
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback(MessageCallback, 0);
 
-  // clang-format off
-  std::vector<float> positions = {
-      -1.0, -1.0,  0.0,
-       1.0, -1.0,  0.0,
-       1.0,  1.0,  0.0,
-      -1.0,  1.0,  0.0,
-  };
-  // clang-format on
-  std::vector<uint32_t> index = {
-      0, 1, 2, 2, 3, 0,
-  };
-  Buffer<float, GL_ARRAY_BUFFER> pos(positions.data(), positions.size());
-  Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER> ind(index.data(), index.size());
+  std::vector<Vertex> vertices = {};
+  std::vector<uint32_t> indices = {};
+  loadObj("model.obj", vertices, indices);
+  Buffer<Vertex, GL_ARRAY_BUFFER> pos(vertices.data(), vertices.size());
+  Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER> ind(indices.data(), indices.size());
 
   VertexArray arr;
   arr.bind();
@@ -53,7 +78,7 @@ int main() {
     out vec3 pos;
 
     void main() {
-        gl_Position = vec4(position, 1.0f);
+        gl_Position = vec4(position + vec3(0.0, 0.0, 0.0), 1.0f);
         pos = position;
     }
   )";
@@ -71,9 +96,9 @@ int main() {
   Shader shader(vert, frag);
   shader.bind();
 
-  window.isRunning([&index] {
+  window.isRunning([&indices] {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glDrawElements(GL_TRIANGLES, index.size(), GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
   });
 }

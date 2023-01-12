@@ -9,11 +9,11 @@ void VertexArray::bind() { glBindVertexArray(m_Id); }
 
 void VertexArray::unbind() { glBindVertexArray(0); }
 
-void VertexArray::addVertexBuffer(Buffer<float, GL_ARRAY_BUFFER>* buffer) {
+void VertexArray::addVertexBuffer(Buffer<Vertex, GL_ARRAY_BUFFER>* buffer) {
   buffer->bind();
   glEnableVertexAttribArray(m_VertexBuffers.size());
   glVertexAttribPointer(m_VertexBuffers.size(), 3, GL_FLOAT, GL_FALSE,
-                        sizeof(float) * 3, nullptr);
+                        sizeof(Vertex), nullptr);
   m_VertexBuffers.push_back(buffer);
 }
 
