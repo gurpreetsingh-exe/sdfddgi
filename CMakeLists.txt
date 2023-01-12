@@ -6,7 +6,8 @@ set(OpenGL_GL_PREFERENCE GLVND)
 set(SOURCES
     src/main.cc
     src/Window.cc
-    src/VertexArray.cc)
+    src/VertexArray.cc
+    src/Shader.cc)
 
 add_executable(sdfddgi ${SOURCES})
 

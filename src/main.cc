@@ -2,6 +2,7 @@
 #include <GL/glew.h>
 // clang-format on
 #include "Buffer.hh"
+#include "Shader.hh"
 #include "VertexArray.hh"
 #include "Window.hh"
 #include <cstdint>
@@ -44,6 +45,31 @@ int main() {
   arr.bind();
   arr.addVertexBuffer(&pos);
   arr.setIndexBuffer(&ind);
+
+  const char* vert = R"(
+    #version 450
+
+    layout (location = 0) in vec3 position;
+    out vec3 pos;
+
+    void main() {
+        gl_Position = vec4(position, 1.0f);
+        pos = position;
+    }
+  )";
+
+  const char* frag = R"(
+    #version 450
+
+    in vec3 pos;
+    out vec4 color;
+
+    void main() {
+        color = vec4(pos, 1.0f);
+    }
+  )";
+  Shader shader(vert, frag);
+  shader.bind();
 
   window.isRunning([&index] {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
