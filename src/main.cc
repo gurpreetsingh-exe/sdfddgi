@@ -1,5 +1,8 @@
 // clang-format off
+#include "Framebuffer.hh"
+#include "Texture.hh"
 #include <GL/glew.h>
+#include <stdexcept>
 // clang-format on
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "../vendor/tiny_obj_loader.h"
@@ -109,10 +112,22 @@ int main() {
         color = vec4(normal, 1.0f);
     }
   )";
+
   Shader shader(vert, frag);
   shader.bind();
+  uint32_t width = window.getWidth();
+  uint32_t height = window.getHeight();
+  Framebuffer framebuffer(width, height);
+  Texture color(width, height, GL_RGB8);
+  framebuffer.bind();
+  framebuffer.addColorAttachment(color);
+  framebuffer.setDepthAttachment();
+  if (!framebuffer.isComplete()) {
+    throw std::runtime_error("framebuffer setup not completed");
+  }
+  framebuffer.unbind();
 
-  window.isRunning([&indices, &io] {
+  window.isRunning([&indices, &io, &framebuffer] {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -168,15 +183,18 @@ int main() {
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin("Viewport");
-
+    ImVec2 dim = ImGui::GetWindowSize();
+    ImGui::Image((void*)(intptr_t)framebuffer.getColorAttachments()[0], dim);
     ImGui::End();
     ImGui::PopStyleVar();
 
+    framebuffer.bind();
     glEnable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
     glDisable(GL_DEPTH_TEST);
+    framebuffer.unbind();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

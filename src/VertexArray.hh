@@ -9,9 +9,6 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtx/hash.hpp>
-
-#include <iostream>
-#include <unordered_map>
 #include <vector>
 
 struct Vertex {

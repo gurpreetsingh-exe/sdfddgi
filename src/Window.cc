@@ -8,6 +8,7 @@ Window::Window(uint32_t width, uint32_t height, const char* name)
     throw std::runtime_error("cannot initialize glfw");
   }
 
+  glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
   m_Window = glfwCreateWindow(m_Width, m_Height, m_Name, nullptr, nullptr);
   if (!m_Window) {
     throw std::runtime_error("failed to create window");

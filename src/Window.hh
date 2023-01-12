@@ -13,6 +13,8 @@ public:
 public:
   void isRunning(std::function<void()>);
   GLFWwindow* getHandle() { return m_Window; }
+  uint32_t getWidth() { return m_Width; }
+  uint32_t getHeight() { return m_Height; }
 
 private:
   uint32_t m_Width, m_Height;
