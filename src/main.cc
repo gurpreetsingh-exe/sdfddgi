@@ -39,8 +39,8 @@ void loadObj(const char* filepath, std::vector<Vertex>& vertices,
     for (const auto& index : shape.mesh.indices) {
       Vertex vertex;
       vertex.pos = {attributes.vertices[3 * index.vertex_index + 0],
-                    attributes.vertices[3 * index.vertex_index + 2],
-                    attributes.vertices[3 * index.vertex_index + 1]};
+                    attributes.vertices[3 * index.vertex_index + 1],
+                    attributes.vertices[3 * index.vertex_index + 2]};
 
       if (uniqueVertices.count(vertex) == 0) {
         uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
@@ -78,7 +78,7 @@ int main() {
     out vec3 pos;
 
     void main() {
-        gl_Position = vec4(position + vec3(0.0, 0.0, 0.0), 1.0f);
+        gl_Position = vec4(position, 1.0f);
         pos = position;
     }
   )";
@@ -90,15 +90,18 @@ int main() {
     out vec4 color;
 
     void main() {
-        color = vec4(pos, 1.0f);
+        vec3 normal = normalize(cross(dFdx(pos), dFdy(pos)));
+        color = vec4(normal, 1.0f);
     }
   )";
   Shader shader(vert, frag);
   shader.bind();
 
   window.isRunning([&indices] {
+    glEnable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
+    glDisable(GL_DEPTH_TEST);
   });
 }
