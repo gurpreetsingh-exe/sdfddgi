@@ -12,6 +12,8 @@ Window::Window(uint32_t width, uint32_t height, const char* name)
   if (!m_Window) {
     throw std::runtime_error("failed to create window");
   }
+
+  glfwMakeContextCurrent(m_Window);
 }
 
 void Window::isRunning(std::function<void()> func) {
@@ -22,4 +24,7 @@ void Window::isRunning(std::function<void()> func) {
   }
 }
 
-Window::~Window() { glfwDestroyWindow(m_Window); }
+Window::~Window() {
+  glfwDestroyWindow(m_Window);
+  glfwTerminate();
+}
