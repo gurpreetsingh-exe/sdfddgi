@@ -2,6 +2,7 @@
 #define SHADER_H
 
 #include <cstdint>
+#include <glm/glm.hpp>
 #include <string>
 
 class Shader {
@@ -13,6 +14,15 @@ public:
   void bind();
   void unbind();
   const uint32_t getId() const { return m_Id; }
+
+  void uploadUniformFloat(const std::string& name, float value);
+
+  void uploadUniformVec2(const std::string& name, const glm::vec2& vec);
+  void uploadUniformVec3(const std::string& name, const glm::vec3& vec);
+  void uploadUniformVec4(const std::string& name, const glm::vec4& vec);
+
+  void uploadUniformMat3(const std::string& name, const glm::mat3& mat);
+  void uploadUniformMat4(const std::string& name, const glm::mat4& mat);
 
 private:
   uint32_t m_Id;

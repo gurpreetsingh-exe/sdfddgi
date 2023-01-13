@@ -1,9 +1,10 @@
 // clang-format off
+#include <GL/glew.h>
+// clang-format on
+#include "Camera.hh"
 #include "Framebuffer.hh"
 #include "Texture.hh"
-#include <GL/glew.h>
 #include <stdexcept>
-// clang-format on
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "../vendor/tiny_obj_loader.h"
 #include "Buffer.hh"
@@ -58,8 +59,10 @@ void loadObj(const char* filepath, std::vector<Vertex>& vertices,
   }
 }
 
+Window window(640, 640, "sdfddgi");
+
 int main() {
-  Window window(640, 640, "sdfddgi");
+  // Window window(640, 640, "sdfddgi");
   if (glewInit() == GLEW_OK) {
     std::cout << "GL version: " << glGetString(GL_VERSION) << std::endl;
   }
@@ -95,8 +98,10 @@ int main() {
     layout (location = 0) in vec3 position;
     out vec3 pos;
 
+    uniform mat4 modelViewProjection;
+
     void main() {
-        gl_Position = vec4(position, 1.0f);
+        gl_Position = modelViewProjection * vec4(position, 1.0f);
         pos = position;
     }
   )";
@@ -127,7 +132,14 @@ int main() {
   }
   framebuffer.unbind();
 
-  window.isRunning([&indices, &io, &framebuffer] {
+  Camera camera(width, height, 90.0, 0.1, 100.0);
+
+  window.isRunning([&indices, &io, &framebuffer, &camera, &shader, &width,
+                    &height] {
+    auto event = window.getEvent();
+    camera.onResize(width, height);
+    camera.onUpdate(event);
+
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -189,6 +201,9 @@ int main() {
     ImGui::PopStyleVar();
 
     framebuffer.bind();
+    shader.uploadUniformMat4("modelViewProjection",
+                             camera.getProjection() * camera.getView());
+
     glEnable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);

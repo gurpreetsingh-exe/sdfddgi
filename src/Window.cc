@@ -1,6 +1,17 @@
 #include "Window.hh"
 #include <GLFW/glfw3.h>
+#include <iostream>
 #include <stdexcept>
+
+static void keyCallback(GLFWwindow* window, int key, int scancode, int action,
+                        int mods) {
+  auto event = reinterpret_cast<Event*>(glfwGetWindowUserPointer(window));
+  if (action == GLFW_PRESS) {
+    event->pressed[key] = true;
+  } else if (action == GLFW_RELEASE) {
+    event->pressed[key] = false;
+  }
+}
 
 Window::Window(uint32_t width, uint32_t height, const char* name)
     : m_Width(width), m_Height(height), m_Name(name) {
@@ -14,18 +25,27 @@ Window::Window(uint32_t width, uint32_t height, const char* name)
     throw std::runtime_error("failed to create window");
   }
 
+  m_Event = new Event();
   glfwMakeContextCurrent(m_Window);
+  glfwSetKeyCallback(m_Window, keyCallback);
+  glfwSetWindowUserPointer(m_Window, m_Event);
 }
 
 void Window::isRunning(std::function<void()> func) {
   while (!glfwWindowShouldClose(m_Window)) {
+    auto time = std::chrono::steady_clock::now();
     func();
     glfwPollEvents();
     glfwSwapBuffers(m_Window);
+    m_Event->deltaTime =
+        std::chrono::duration_cast<std::chrono::milliseconds>(time - m_LastTime)
+            .count();
+    m_LastTime = time;
   }
 }
 
 Window::~Window() {
+  delete m_Event;
   glfwDestroyWindow(m_Window);
   glfwTerminate();
 }

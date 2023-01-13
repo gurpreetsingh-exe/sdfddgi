@@ -2,6 +2,7 @@
 #include <GL/glew.h>
 // clang-format on
 #include "Shader.hh"
+#include <glm/gtc/type_ptr.hpp>
 #include <stdexcept>
 #include <vector>
 
@@ -66,5 +67,35 @@ Shader::Shader(const std::string& vertSrc, const std::string& fragSrc) {
 void Shader::bind() { glUseProgram(m_Id); }
 
 void Shader::unbind() { glUseProgram(0); }
+
+void Shader::uploadUniformFloat(const std::string& name, float value) {
+  uint32_t valLoc = glGetUniformLocation(m_Id, name.c_str());
+  glUniform1f(valLoc, value);
+}
+
+void Shader::uploadUniformVec2(const std::string& name, const glm::vec2& vec) {
+  uint32_t vecLoc = glGetUniformLocation(m_Id, name.c_str());
+  glUniform2f(vecLoc, vec.x, vec.y);
+}
+
+void Shader::uploadUniformVec3(const std::string& name, const glm::vec3& vec) {
+  uint32_t vecLoc = glGetUniformLocation(m_Id, name.c_str());
+  glUniform3f(vecLoc, vec.x, vec.y, vec.z);
+}
+
+void Shader::uploadUniformVec4(const std::string& name, const glm::vec4& vec) {
+  uint32_t vecLoc = glGetUniformLocation(m_Id, name.c_str());
+  glUniform4f(vecLoc, vec.x, vec.y, vec.z, vec.w);
+}
+
+void Shader::uploadUniformMat3(const std::string& name, const glm::mat3& mat) {
+  uint32_t matLoc = glGetUniformLocation(m_Id, name.c_str());
+  glUniformMatrix3fv(matLoc, 1, GL_FALSE, glm::value_ptr(mat));
+}
+
+void Shader::uploadUniformMat4(const std::string& name, const glm::mat4& mat) {
+  uint32_t matLoc = glGetUniformLocation(m_Id, name.c_str());
+  glUniformMatrix4fv(matLoc, 1, GL_FALSE, glm::value_ptr(mat));
+}
 
 Shader::~Shader() { glDeleteProgram(m_Id); }
