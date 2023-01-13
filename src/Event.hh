@@ -8,6 +8,8 @@
 struct Event {
   float deltaTime;
   bool pressed[GLFW_KEY_LAST + 1];
+  glm::vec2 mousePos;
+  bool disableCursor;
 };
 
 #endif // !EVENT_H

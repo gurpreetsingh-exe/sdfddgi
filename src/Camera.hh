@@ -42,6 +42,7 @@ private:
   float m_ClipFar;
 
   bool m_NeedsUpdate = false;
+  bool m_LookAround = false;
 
   glm::vec3 m_Position = glm::vec3(2.0f, 2.0f, 2.0f);
   glm::vec3 m_Direction = glm::vec3(-1.0f);
