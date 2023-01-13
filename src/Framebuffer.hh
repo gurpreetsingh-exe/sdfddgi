@@ -15,15 +15,17 @@ public:
 public:
   void bind();
   void unbind();
-  void addColorAttachment(const Texture& texture);
+  void addColorAttachment();
   void setDepthAttachment();
   bool isComplete();
-  std::vector<uint32_t> getColorAttachments() { return m_ColorAttachments; }
+  std::vector<Texture*> getColorAttachments() { return m_ColorAttachments; }
+  void onResize(uint32_t width, uint32_t height);
+  void invalidate();
 
 private:
   uint32_t m_Id;
   uint32_t m_Width, m_Height;
-  std::vector<uint32_t> m_ColorAttachments;
+  std::vector<Texture*> m_ColorAttachments;
   uint32_t m_DepthAttachment;
 };
 

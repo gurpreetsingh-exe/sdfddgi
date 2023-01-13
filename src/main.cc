@@ -123,10 +123,7 @@ int main() {
   uint32_t width = window.getWidth();
   uint32_t height = window.getHeight();
   Framebuffer framebuffer(width, height);
-  Texture color(width, height, GL_RGB8);
   framebuffer.bind();
-  framebuffer.addColorAttachment(color);
-  framebuffer.setDepthAttachment();
   if (!framebuffer.isComplete()) {
     throw std::runtime_error("framebuffer setup not completed");
   }
@@ -134,10 +131,8 @@ int main() {
 
   Camera camera(width, height, 90.0, 0.1, 100.0);
 
-  window.isRunning([&indices, &io, &framebuffer, &camera, &shader, &width,
-                    &height] {
+  window.isRunning([&indices, &io, &framebuffer, &camera, &shader] {
     auto event = window.getEvent();
-    camera.onResize(width, height);
     camera.onUpdate(event);
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -196,7 +191,10 @@ int main() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin("Viewport");
     ImVec2 dim = ImGui::GetWindowSize();
-    ImGui::Image((void*)(intptr_t)framebuffer.getColorAttachments()[0], dim);
+    framebuffer.onResize(dim.x, dim.y);
+    camera.onResize(dim.x, dim.y);
+    ImGui::Image((void*)(intptr_t)framebuffer.getColorAttachments()[0]->getId(),
+                 dim);
     ImGui::End();
     ImGui::PopStyleVar();
 
@@ -208,6 +206,7 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
+    glViewport(0, 0, dim.x, dim.y);
     glDisable(GL_DEPTH_TEST);
     framebuffer.unbind();
 
