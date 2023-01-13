@@ -1,14 +1,12 @@
 // clang-format off
 #include <GL/glew.h>
 // clang-format on
+#include "Buffer.hh"
 #include "Camera.hh"
 #include "Framebuffer.hh"
-#include "Texture.hh"
-#include <stdexcept>
-#define TINYOBJLOADER_IMPLEMENTATION
-#include "../vendor/tiny_obj_loader.h"
-#include "Buffer.hh"
+#include "Mesh.hh"
 #include "Shader.hh"
+#include "Texture.hh"
 #include "VertexArray.hh"
 #include "Window.hh"
 #include "imgui.h"
@@ -16,7 +14,7 @@
 #include "imgui_impl_opengl3.h"
 #include <cstdint>
 #include <iostream>
-#include <unordered_map>
+#include <stdexcept>
 #include <vector>
 
 static void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
@@ -29,40 +27,22 @@ static void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
           message);
 }
 
-void loadObj(const char* filepath, std::vector<Vertex>& vertices,
-             std::vector<uint32_t>& indices) {
-  tinyobj::ObjReader reader;
-  tinyobj::ObjReaderConfig config;
-  reader.ParseFromFile(filepath, config);
+struct Properties {
+  std::string obj;
+};
 
-  if (!reader.Valid()) {
-    throw std::runtime_error(reader.Warning() + reader.Error());
-  }
-
-  std::unordered_map<Vertex, uint32_t> uniqueVertices;
-  const auto& attributes = reader.GetAttrib();
-
-  for (const auto& shape : reader.GetShapes()) {
-    for (const auto& index : shape.mesh.indices) {
-      Vertex vertex;
-      vertex.pos = {attributes.vertices[3 * index.vertex_index + 0],
-                    attributes.vertices[3 * index.vertex_index + 1],
-                    attributes.vertices[3 * index.vertex_index + 2]};
-
-      if (uniqueVertices.count(vertex) == 0) {
-        uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-        vertices.push_back(vertex);
-      }
-
-      indices.push_back(uniqueVertices[vertex]);
-    }
-  }
+void openFileBrowser(Properties& props) {
+  char filename[512];
+  FILE* f = popen("zenity --file-selection", "r");
+  fgets(filename, 512, f);
+  props.obj = std::string(filename);
+  props.obj[props.obj.size() - 1] = '\0';
 }
 
 Window window(640, 640, "sdfddgi");
-
 int main() {
-  // Window window(640, 640, "sdfddgi");
+  Properties properties;
+
   if (glewInit() == GLEW_OK) {
     std::cout << "GL version: " << glGetString(GL_VERSION) << std::endl;
   }
@@ -81,16 +61,14 @@ int main() {
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback(MessageCallback, 0);
 
-  std::vector<Vertex> vertices = {};
-  std::vector<uint32_t> indices = {};
-  loadObj("model.obj", vertices, indices);
-  Buffer<Vertex, GL_ARRAY_BUFFER> pos(vertices.data(), vertices.size());
-  Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER> ind(indices.data(), indices.size());
+  auto mesh = Mesh::fromObj("model.obj");
+  auto pos = new Buffer<Vertex, GL_ARRAY_BUFFER>(mesh->vertices);
+  auto ind = new Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>(mesh->indices);
 
-  VertexArray arr;
-  arr.bind();
-  arr.addVertexBuffer(&pos);
-  arr.setIndexBuffer(&ind);
+  auto arr = new VertexArray();
+  arr->bind();
+  arr->addVertexBuffer(pos);
+  arr->setIndexBuffer(ind);
 
   const char* vert = R"(
     #version 450
@@ -114,7 +92,7 @@ int main() {
 
     void main() {
         vec3 normal = normalize(cross(dFdx(pos), dFdy(pos)));
-        color = vec4(normal, 1.0f);
+        color = vec4(0.5 + 0.5 * normal, 1.0f);
     }
   )";
 
@@ -131,7 +109,7 @@ int main() {
 
   Camera camera(width, height, 90.0, 0.1, 100.0);
 
-  window.isRunning([&indices, &io, &framebuffer, &camera, &shader] {
+  window.isRunning([&] {
     auto event = window.getEvent();
     camera.onUpdate(event);
 
@@ -186,6 +164,21 @@ int main() {
     ImGui::End();
 
     ImGui::Begin("Properties");
+    if (ImGui::Button("Load OBJ")) {
+      openFileBrowser(properties);
+      delete mesh;
+      delete arr;
+      delete pos;
+      delete ind;
+      mesh = Mesh::fromObj(properties.obj);
+      arr = new VertexArray();
+      arr->bind();
+      pos = new Buffer<Vertex, GL_ARRAY_BUFFER>(mesh->vertices);
+      ind = new Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>(mesh->indices);
+      arr->addVertexBuffer(pos);
+      arr->setIndexBuffer(ind);
+    }
+
     ImGui::End();
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -198,14 +191,17 @@ int main() {
     ImGui::End();
     ImGui::PopStyleVar();
 
+    shader.bind();
     framebuffer.bind();
+    arr->bind();
     shader.uploadUniformMat4("modelViewProjection",
                              camera.getProjection() * camera.getView());
 
     glEnable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT,
+                   nullptr);
     glViewport(0, 0, dim.x, dim.y);
     glDisable(GL_DEPTH_TEST);
     framebuffer.unbind();
@@ -224,4 +220,8 @@ int main() {
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
+  delete mesh;
+  delete arr;
+  delete pos;
+  delete ind;
 }

@@ -6,10 +6,18 @@
 // clang-format on
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 template <typename T, uint32_t target>
 class Buffer {
 public:
+  Buffer(std::vector<T> bufData) {
+    glCreateBuffers(1, &m_Id);
+    glBindBuffer(target, m_Id);
+    glBufferData(target, bufData.size() * sizeof(T), bufData.data(),
+                 GL_STATIC_DRAW);
+  }
+
   Buffer(T* data, size_t size) {
     glCreateBuffers(1, &m_Id);
     glBindBuffer(target, m_Id);
