@@ -12,8 +12,6 @@ set(SOURCES
     src/Window.cc
     src/VertexArray.cc
     src/Shader.cc
-    src/Framebuffer.cc
-    src/Texture.cc
     src/Camera.cc
     src/Mesh.cc
 

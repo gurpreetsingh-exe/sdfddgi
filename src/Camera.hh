@@ -25,6 +25,12 @@ public:
   const glm::mat4& getProjection() const { return m_Projection; }
   void onUpdate(Event* event);
   void onResize(uint32_t width, uint32_t height);
+  void setFov(float fov) {
+    if (m_Fov != fov) {
+      m_Fov = fov;
+      m_NeedsUpdate = true;
+    }
+  }
 
 private:
   void updateModel();

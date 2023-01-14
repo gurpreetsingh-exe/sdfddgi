@@ -100,14 +100,22 @@ int main() {
   shader.bind();
   uint32_t width = window.getWidth();
   uint32_t height = window.getHeight();
-  Framebuffer framebuffer(width, height);
+  Framebuffer<GL_TEXTURE_2D_MULTISAMPLE> msaaFramebuffer(width, height);
+  msaaFramebuffer.bind();
+  if (!msaaFramebuffer.isComplete()) {
+    throw std::runtime_error("msaaFramebuffer setup not completed");
+  }
+  msaaFramebuffer.unbind();
+
+  Framebuffer<GL_TEXTURE_2D> framebuffer(width, height);
   framebuffer.bind();
   if (!framebuffer.isComplete()) {
     throw std::runtime_error("framebuffer setup not completed");
   }
   framebuffer.unbind();
 
-  Camera camera(width, height, 90.0, 0.1, 100.0);
+  float fov = 90.0;
+  Camera camera(width, height, fov, 0.1, 100.0);
 
   window.isRunning([&] {
     auto event = window.getEvent();
@@ -178,21 +186,26 @@ int main() {
       arr->addVertexBuffer(pos);
       arr->setIndexBuffer(ind);
     }
-
+    ImGui::Text("Camera:");
+    ImGui::SliderFloat("Fov", &fov, 10.0, 120.0);
+    camera.setFov(fov);
     ImGui::End();
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin("Viewport");
-    ImVec2 dim = ImGui::GetWindowSize();
+
+    ImVec2 dim = ImGui::GetContentRegionAvail();
+    msaaFramebuffer.onResize(dim.x, dim.y);
     framebuffer.onResize(dim.x, dim.y);
     camera.onResize(dim.x, dim.y);
     ImGui::Image((void*)(intptr_t)framebuffer.getColorAttachments()[0]->getId(),
                  dim);
+
     ImGui::End();
     ImGui::PopStyleVar();
 
     shader.bind();
-    framebuffer.bind();
+    msaaFramebuffer.bind();
     arr->bind();
     shader.uploadUniformMat4("modelViewProjection",
                              camera.getProjection() * camera.getView());
@@ -204,7 +217,12 @@ int main() {
                    nullptr);
     glViewport(0, 0, dim.x, dim.y);
     glDisable(GL_DEPTH_TEST);
-    framebuffer.unbind();
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, msaaFramebuffer.getId());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer.getId());
+    glBlitFramebuffer(0, 0, dim.x, dim.y, 0, 0, dim.x, dim.y,
+                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    msaaFramebuffer.unbind();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
