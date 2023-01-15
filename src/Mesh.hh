@@ -27,6 +27,7 @@ struct Mesh {
   std::vector<uint32_t> indices;
 
   static Mesh* fromObj(const std::string& filepath);
+  static Mesh* fromGLTF(const std::string& filepath);
 };
 
 #endif // !MESH_H

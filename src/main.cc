@@ -61,11 +61,12 @@ int main() {
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback(MessageCallback, 0);
 
-  auto mesh = Mesh::fromObj("model.obj");
+  // auto mesh = Mesh<uint16_t>::fromObj("model.obj");
+  auto mesh = Mesh::fromGLTF("sponza/Sponza.gltf");
   auto pos = new Buffer<Vertex, GL_ARRAY_BUFFER>(mesh->vertices);
   auto ind = new Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>(mesh->indices);
 
-  auto arr = new VertexArray();
+  auto arr = new VertexArray<uint32_t>();
   arr->bind();
   arr->addVertexBuffer(pos);
   arr->setIndexBuffer(ind);
@@ -79,7 +80,7 @@ int main() {
     uniform mat4 modelViewProjection;
 
     void main() {
-        gl_Position = modelViewProjection * vec4(position, 1.0f);
+        gl_Position = modelViewProjection * vec4(position * 0.008, 1.0f);
         pos = position;
     }
   )";
@@ -115,7 +116,7 @@ int main() {
   framebuffer.unbind();
 
   float fov = 90.0;
-  Camera camera(width, height, fov, 0.1, 100.0);
+  Camera camera(width, height, fov, 0.01, 100.0);
 
   window.isRunning([&] {
     auto event = window.getEvent();
@@ -179,7 +180,7 @@ int main() {
       delete pos;
       delete ind;
       mesh = Mesh::fromObj(properties.obj);
-      arr = new VertexArray();
+      arr = new VertexArray<uint32_t>();
       arr->bind();
       pos = new Buffer<Vertex, GL_ARRAY_BUFFER>(mesh->vertices);
       ind = new Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>(mesh->indices);

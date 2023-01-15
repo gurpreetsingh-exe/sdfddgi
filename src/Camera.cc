@@ -4,7 +4,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <iostream>
 
-#define SPEED 0.01f
+#define SPEED 0.005f
 #define ROT_SPEED 0.8f
 
 void Camera::updateModel() { m_Model = glm::mat4(1.0f); }

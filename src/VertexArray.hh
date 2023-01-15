@@ -7,21 +7,38 @@
 #include "Mesh.hh"
 #include <cstdint>
 
+template <typename T>
 class VertexArray {
 public:
-  VertexArray();
-  ~VertexArray();
+  VertexArray() {
+    glCreateVertexArrays(1, &m_Id);
+    glBindVertexArray(m_Id);
+  }
+
+  ~VertexArray() { glDeleteVertexArrays(1, &m_Id); }
 
 public:
-  void bind();
-  void unbind();
-  void addVertexBuffer(Buffer<Vertex, GL_ARRAY_BUFFER>* buffer);
-  void setIndexBuffer(Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>* buffer);
+  void bind() { glBindVertexArray(m_Id); }
+
+  void unbind() { glBindVertexArray(0); }
+
+  void addVertexBuffer(Buffer<Vertex, GL_ARRAY_BUFFER>* buffer) {
+    buffer->bind();
+    glEnableVertexAttribArray(m_VertexBuffers.size());
+    glVertexAttribPointer(m_VertexBuffers.size(), 3, GL_FLOAT, GL_FALSE,
+                          sizeof(Vertex), nullptr);
+    m_VertexBuffers.push_back(buffer);
+  }
+
+  void setIndexBuffer(Buffer<T, GL_ELEMENT_ARRAY_BUFFER>* buffer) {
+    buffer->bind();
+    m_IndexBuffer = buffer;
+  }
 
 private:
   uint32_t m_Id;
   std::vector<Buffer<Vertex, GL_ARRAY_BUFFER>*> m_VertexBuffers;
-  Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>* m_IndexBuffer;
+  Buffer<T, GL_ELEMENT_ARRAY_BUFFER>* m_IndexBuffer;
 };
 
 #endif // !VERTEX_ARRAY_H
