@@ -195,6 +195,12 @@ static void processNodes(const tinygltf::Model& model,
 }
 
 Mesh* Mesh::fromGLTF(const std::string& filepath) {
+  auto mesh = new Mesh();
+  loadGLTF(filepath, mesh);
+  return mesh;
+}
+
+void loadGLTF(const std::string& filepath, Mesh* r_Mesh) {
   tinygltf::Model model;
   tinygltf::TinyGLTF gltf_ctx;
   std::string err;
@@ -224,12 +230,11 @@ Mesh* Mesh::fromGLTF(const std::string& filepath) {
     std::cout << "Failed to parse glTF" << std::endl;
   }
 
-  auto mesh = new Mesh();
   const auto& scene = model.scenes[model.defaultScene];
   glm::mat4 transform = glm::identity<glm::mat4>();
   for (auto i : scene.nodes) {
-    processNodes(model, model.nodes[i], mesh, transform);
+    processNodes(model, model.nodes[i], r_Mesh, transform);
   }
 
-  return mesh;
+  r_Mesh->status = MeshStatus::Loaded;
 }

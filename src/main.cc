@@ -13,8 +13,10 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include <cstdint>
+#include <future>
 #include <iostream>
 #include <stdexcept>
+#include <thread>
 #include <vector>
 
 static void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
@@ -62,14 +64,8 @@ int main() {
   glDebugMessageCallback(MessageCallback, 0);
 
   // auto mesh = Mesh<uint16_t>::fromObj("model.obj");
-  auto mesh = Mesh::fromGLTF("sponza/Sponza.gltf");
-  auto pos = new Buffer<Vertex, GL_ARRAY_BUFFER>(mesh->vertices);
-  auto ind = new Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>(mesh->indices);
-
-  auto arr = new VertexArray<uint32_t>();
-  arr->bind();
-  arr->addVertexBuffer(pos);
-  arr->setIndexBuffer(ind);
+  Mesh* mesh = new Mesh();
+  auto future = std::async(loadGLTF, "sponza/Sponza.gltf", mesh);
 
   const char* vert = R"(
     #version 450
@@ -119,7 +115,24 @@ int main() {
   float fov = 90.0;
   Camera camera(width, height, fov, 0.01, 100.0);
 
+  Buffer<Vertex, GL_ARRAY_BUFFER>* pos;
+  Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>* ind;
+  VertexArray<uint32_t>* arr;
+  bool VAOSetupCompleted = false;
+  bool invalidateFuture = false;
+
   window.isRunning([&] {
+    if (mesh->status == MeshStatus::Loaded && !VAOSetupCompleted) {
+      pos = new Buffer<Vertex, GL_ARRAY_BUFFER>(mesh->vertices);
+      ind = new Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>(mesh->indices);
+
+      arr = new VertexArray<uint32_t>();
+      arr->bind();
+      arr->addVertexBuffer(pos);
+      arr->setIndexBuffer(ind);
+      VAOSetupCompleted = true;
+    }
+
     auto event = window.getEvent();
     camera.onUpdate(event);
 
@@ -171,6 +184,7 @@ int main() {
 
     ImGui::Begin("Debug");
     ImGui::Text("Delta Time: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
+    ImGui::Text("Vertices: %zu", mesh->vertices.size());
     ImGui::End();
 
     ImGui::Begin("Properties");
@@ -206,26 +220,39 @@ int main() {
     ImGui::End();
     ImGui::PopStyleVar();
 
-    shader.bind();
-    msaaFramebuffer.bind();
-    arr->bind();
-    shader.uploadUniformMat4("transform", mesh->localTransform);
-    shader.uploadUniformMat4("modelViewProjection",
-                             camera.getProjection() * camera.getView());
+    if (mesh->status == MeshStatus::Loaded) {
+      shader.bind();
+      msaaFramebuffer.bind();
+      arr->bind();
+      shader.uploadUniformMat4("transform", mesh->localTransform);
+      shader.uploadUniformMat4("modelViewProjection",
+                               camera.getProjection() * camera.getView());
 
-    glEnable(GL_DEPTH_TEST);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT,
-                   nullptr);
-    glViewport(0, 0, dim.x, dim.y);
-    glDisable(GL_DEPTH_TEST);
+      glEnable(GL_DEPTH_TEST);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+      glDrawElements(GL_TRIANGLES, mesh->indices.size(), GL_UNSIGNED_INT,
+                     nullptr);
+      glViewport(0, 0, dim.x, dim.y);
+      glDisable(GL_DEPTH_TEST);
 
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, msaaFramebuffer.getId());
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer.getId());
-    glBlitFramebuffer(0, 0, dim.x, dim.y, 0, 0, dim.x, dim.y,
-                      GL_COLOR_BUFFER_BIT, GL_NEAREST);
-    msaaFramebuffer.unbind();
+      glBindFramebuffer(GL_READ_FRAMEBUFFER, msaaFramebuffer.getId());
+      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer.getId());
+      glBlitFramebuffer(0, 0, dim.x, dim.y, 0, 0, dim.x, dim.y,
+                        GL_COLOR_BUFFER_BIT, GL_NEAREST);
+      msaaFramebuffer.unbind();
+    } else {
+      msaaFramebuffer.bind();
+      glClear(GL_COLOR_BUFFER_BIT);
+      glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+      glViewport(0, 0, dim.x, dim.y);
+
+      glBindFramebuffer(GL_READ_FRAMEBUFFER, msaaFramebuffer.getId());
+      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer.getId());
+      glBlitFramebuffer(0, 0, dim.x, dim.y, 0, 0, dim.x, dim.y,
+                        GL_COLOR_BUFFER_BIT, GL_NEAREST);
+      msaaFramebuffer.unbind();
+    }
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -235,6 +262,12 @@ int main() {
       ImGui::UpdatePlatformWindows();
       ImGui::RenderPlatformWindowsDefault();
       glfwMakeContextCurrent(backup_current_context);
+    }
+
+    if (!invalidateFuture &&
+        future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+      future.get();
+      invalidateFuture = true;
     }
   });
 

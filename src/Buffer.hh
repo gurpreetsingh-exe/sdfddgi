@@ -11,6 +11,7 @@
 template <typename T, uint32_t target>
 class Buffer {
 public:
+  Buffer() = default;
   Buffer(std::vector<T> bufData) {
     glCreateBuffers(1, &m_Id);
     glBindBuffer(target, m_Id);
