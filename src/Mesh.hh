@@ -25,6 +25,7 @@ struct hash<Vertex> {
 struct Mesh {
   std::vector<Vertex> vertices;
   std::vector<uint32_t> indices;
+  glm::mat4 localTransform;
 
   static Mesh* fromObj(const std::string& filepath);
   static Mesh* fromGLTF(const std::string& filepath);

@@ -36,6 +36,6 @@ find_package(GLEW REQUIRED)
 find_package(glfw3 REQUIRED)
 
 target_link_libraries(sdfddgi PUBLIC OpenGL::GL GLEW glfw tinygltf ${CMAKE_DL_LIBS})
-# target_compile_options(sdfddgi PRIVATE -ggdb -fsanitize=address -fno-omit-frame-pointer -pthread)
-# target_link_options(sdfddgi PRIVATE -fsanitize=address)
+target_compile_options(sdfddgi PRIVATE -ggdb -fsanitize=address -fno-omit-frame-pointer -pthread)
+target_link_options(sdfddgi PRIVATE -fsanitize=address)
 

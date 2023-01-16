@@ -78,9 +78,10 @@ int main() {
     out vec3 pos;
 
     uniform mat4 modelViewProjection;
+    uniform mat4 transform;
 
     void main() {
-        gl_Position = modelViewProjection * vec4(position * 0.008, 1.0f);
+        gl_Position = modelViewProjection * transform * vec4(position, 1.0f);
         pos = position;
     }
   )";
@@ -208,6 +209,7 @@ int main() {
     shader.bind();
     msaaFramebuffer.bind();
     arr->bind();
+    shader.uploadUniformMat4("transform", mesh->localTransform);
     shader.uploadUniformMat4("modelViewProjection",
                              camera.getProjection() * camera.getView());
 
