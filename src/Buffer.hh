@@ -22,7 +22,7 @@ public:
   Buffer(T* data, size_t size) {
     glCreateBuffers(1, &m_Id);
     glBindBuffer(target, m_Id);
-    glBufferData(target, size * sizeof(T), data, GL_STATIC_DRAW);
+    glBufferData(target, size, data, GL_STATIC_DRAW);
   }
 
   ~Buffer() { glDeleteBuffers(1, &m_Id); }
