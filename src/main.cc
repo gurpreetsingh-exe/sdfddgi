@@ -4,14 +4,12 @@
 #include "Buffer.hh"
 #include "Camera.hh"
 #include "Framebuffer.hh"
+#include "ImGuiLayer.hh"
 #include "Mesh.hh"
 #include "Shader.hh"
 #include "Texture.hh"
 #include "VertexArray.hh"
 #include "Window.hh"
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
 #include <cstdint>
 #include <future>
 #include <iostream>
@@ -29,16 +27,13 @@ static void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id,
           message);
 }
 
-struct Properties {
-  std::string obj;
-};
-
-void openFileBrowser(Properties& props) {
+std::string openFileBrowser() {
   char filename[512];
   FILE* f = popen("zenity --file-selection", "r");
   fgets(filename, 512, f);
-  props.obj = std::string(filename);
-  props.obj[props.obj.size() - 1] = '\0';
+  auto obj = std::string(filename);
+  obj[obj.size() - 1] = '\0';
+  return obj;
 }
 
 Window window(640, 640, "sdfddgi");
@@ -49,16 +44,7 @@ int main() {
     std::cout << "GL version: " << glGetString(GL_VERSION) << std::endl;
   }
 
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-  io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
-
-  ImGui::StyleColorsDark();
-  ImGui_ImplGlfw_InitForOpenGL(window.getHandle(), true);
-  ImGui_ImplOpenGL3_Init("#version 450");
+  ImGuiLayer imguiLayer;
 
   glEnable(GL_DEBUG_OUTPUT);
   glDebugMessageCallback(MessageCallback, 0);
@@ -122,6 +108,9 @@ int main() {
   bool invalidateFuture = false;
 
   window.isRunning([&] {
+    imguiLayer.props.meshVertices = mesh->vertices.size();
+    camera.setFov(imguiLayer.props.cameraFov);
+
     if (mesh->status == MeshStatus::Loaded && !VAOSetupCompleted) {
       pos = new Buffer<Vertex, GL_ARRAY_BUFFER>(mesh->vertices);
       ind = new Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>(mesh->indices);
@@ -136,89 +125,13 @@ int main() {
     auto event = window.getEvent();
     camera.onUpdate(event);
 
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
+    imguiLayer.beginFrame();
+    imguiLayer.onUpdate(framebuffer);
 
-    static bool opt_fullscreen = true;
-    static bool opt_padding = false;
-    static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
-
-    ImGuiWindowFlags window_flags =
-        ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-    if (opt_fullscreen) {
-      const ImGuiViewport* viewport = ImGui::GetMainViewport();
-      ImGui::SetNextWindowPos(viewport->WorkPos);
-      ImGui::SetNextWindowSize(viewport->WorkSize);
-      ImGui::SetNextWindowViewport(viewport->ID);
-      ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-      ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-      window_flags |= ImGuiWindowFlags_NoTitleBar |
-                      ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
-                      ImGuiWindowFlags_NoMove;
-      window_flags |=
-          ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-    }
-
-    if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
-      window_flags |= ImGuiWindowFlags_NoBackground;
-
-    if (!opt_padding)
-      ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    bool p_open = true;
-
-    ImGui::Begin("DockSpace", &p_open, window_flags);
-
-    if (!opt_padding)
-      ImGui::PopStyleVar();
-
-    if (opt_fullscreen)
-      ImGui::PopStyleVar(2);
-
-    if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable) {
-      ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
-      ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
-    }
-
-    ImGui::End();
-
-    ImGui::Begin("Debug");
-    ImGui::Text("Delta Time: %.3f ms", 1000.0f / ImGui::GetIO().Framerate);
-    ImGui::Text("Vertices: %zu", mesh->vertices.size());
-    ImGui::End();
-
-    ImGui::Begin("Properties");
-    if (ImGui::Button("Load OBJ")) {
-      openFileBrowser(properties);
-      delete mesh;
-      delete arr;
-      delete pos;
-      delete ind;
-      mesh = Mesh::fromObj(properties.obj);
-      arr = new VertexArray<uint32_t>();
-      arr->bind();
-      pos = new Buffer<Vertex, GL_ARRAY_BUFFER>(mesh->vertices);
-      ind = new Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>(mesh->indices);
-      arr->addVertexBuffer(pos);
-      arr->setIndexBuffer(ind);
-    }
-    ImGui::Text("Camera:");
-    ImGui::SliderFloat("Fov", &fov, 10.0, 120.0);
-    camera.setFov(fov);
-    ImGui::End();
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::Begin("Viewport");
-
-    ImVec2 dim = ImGui::GetContentRegionAvail();
+    ImVec2 dim = imguiLayer.getViewportDimensions();
     msaaFramebuffer.onResize(dim.x, dim.y);
     framebuffer.onResize(dim.x, dim.y);
     camera.onResize(dim.x, dim.y);
-    ImGui::Image((void*)(intptr_t)framebuffer.getColorAttachments()[0]->getId(),
-                 dim);
-
-    ImGui::End();
-    ImGui::PopStyleVar();
 
     if (mesh->status == MeshStatus::Loaded) {
       shader.bind();
@@ -254,15 +167,7 @@ int main() {
       msaaFramebuffer.unbind();
     }
 
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-      GLFWwindow* backup_current_context = glfwGetCurrentContext();
-      ImGui::UpdatePlatformWindows();
-      ImGui::RenderPlatformWindowsDefault();
-      glfwMakeContextCurrent(backup_current_context);
-    }
+    imguiLayer.endFrame();
 
     if (!invalidateFuture &&
         future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
@@ -271,9 +176,6 @@ int main() {
     }
   });
 
-  ImGui_ImplOpenGL3_Shutdown();
-  ImGui_ImplGlfw_Shutdown();
-  ImGui::DestroyContext();
   delete mesh;
   delete arr;
   delete pos;
