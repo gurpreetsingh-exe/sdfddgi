@@ -2,7 +2,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-extern Window window;
+extern Window* window;
 
 ImGuiLayer::ImGuiLayer() {
   IMGUI_CHECKVERSION();
@@ -12,7 +12,7 @@ ImGuiLayer::ImGuiLayer() {
   io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
   io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
   ImGui::StyleColorsDark();
-  ImGui_ImplGlfw_InitForOpenGL(window.getHandle(), true);
+  ImGui_ImplGlfw_InitForOpenGL(window->getHandle(), true);
   ImGui_ImplOpenGL3_Init("#version 450");
 }
 
@@ -67,7 +67,6 @@ void ImGuiLayer::onUpdate(Framebuffer<GL_TEXTURE_2D>& framebuffer) {
   ImGui::Begin("Properties");
   ImGui::Text("Camera:");
   ImGui::SliderFloat("Fov", &props.cameraFov, 10.0, 120.0);
-  // camera.setFov(fov);
   ImGui::End();
 
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));

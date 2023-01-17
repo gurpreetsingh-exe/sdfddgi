@@ -30,7 +30,7 @@ void Camera::onResize(uint32_t width, uint32_t height) {
   }
 }
 
-extern Window window;
+extern Window* window;
 
 void Camera::onUpdate(Event* event) {
   glm::vec2 delta = (event->mousePos - m_LastMousePos) * 0.0025f;
@@ -56,10 +56,10 @@ void Camera::onUpdate(Event* event) {
   }
 
   if (event->disableCursor) {
-    glfwSetInputMode(window.getHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window->getHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     m_LookAround = true;
   } else {
-    glfwSetInputMode(window.getHandle(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    glfwSetInputMode(window->getHandle(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     m_LookAround = false;
   }
 

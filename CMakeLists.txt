@@ -15,6 +15,8 @@ set(SOURCES
     src/Camera.cc
     src/Mesh.cc
     src/ImGuiLayer.cc
+    src/Application.cc
+    src/utils.cc
 
     ${IMGUI_DIR}/imgui.cpp
     ${IMGUI_DIR}/imgui_demo.cpp
