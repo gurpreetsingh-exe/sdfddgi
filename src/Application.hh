@@ -58,9 +58,7 @@ private:
   Mesh* m_Mesh;
   Shader* m_Shader;
   Camera* m_Camera;
-  Buffer<Vertex, GL_ARRAY_BUFFER>* m_Position;
-  Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>* m_Indices;
-  VertexArray<uint32_t>* m_VertexArray;
+  VertexArray* m_VertexArray;
   bool VAOSetupCompleted = false;
   bool invalidateFuture = false;
 

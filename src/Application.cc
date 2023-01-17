@@ -2,7 +2,6 @@
 #include <GL/glew.h>
 // clang-format on
 #include "Application.hh"
-#include "Framebuffer.hh"
 #include <future>
 #include <iostream>
 #include <thread>
@@ -62,44 +61,29 @@ void Application::run() {
     m_Camera->setFov(m_ImGuiLayer->props.cameraFov);
 
     if (m_Mesh->status == MeshStatus::Loaded && !VAOSetupCompleted) {
-#if 0
-      m_Position = new Buffer<Vertex, GL_ARRAY_BUFFER>(m_Mesh->vertices);
-      m_Indices =
-          new Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>(m_Mesh->indices);
-
-      m_VertexArray = new VertexArray<uint32_t>();
+      m_VertexArray = new VertexArray();
       m_VertexArray->bind();
-      m_VertexArray->addVertexBuffer(m_Position);
-      m_VertexArray->setIndexBuffer(m_Indices);
-      VAOSetupCompleted = true;
-#else
-      m_Indices =
-          new Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>(m_Mesh->indices);
-      std::cout << sizeof(Vertex) << std::endl;
-
-      m_VertexArray = new VertexArray<uint32_t>();
-      m_VertexArray->bind();
-      std::vector<BufferLayout> layout = {
+      std::vector<BufferLayout> layouts = {
           {
               .type = FLOAT,
               .normalized = false,
-              .offset = 12,
-              .elements = 3,
+              .stride = 12,
+              .size = 3,
               .data = m_Mesh->vertices.data(),
-              .size = m_Mesh->vertices.size() * 12,
+              .byteSize = m_Mesh->vertices.size() * 12,
           },
           {
               .type = FLOAT,
               .normalized = true,
-              .offset = 12,
-              .elements = 3,
+              .stride = 12,
+              .size = 3,
               .data = m_Mesh->normals.data(),
-              .size = m_Mesh->normals.size() * 12,
+              .byteSize = m_Mesh->normals.size() * 12,
           }};
-      m_VertexArray->addLayout(layout);
-      m_VertexArray->setIndexBuffer(m_Indices);
+      m_VertexArray->addVertexBuffers(layouts);
+      m_VertexArray->setIndexBuffer(new Buffer<GL_ELEMENT_ARRAY_BUFFER>(
+          m_Mesh->indices.data(), m_Mesh->indices.size() * sizeof(uint32_t)));
       VAOSetupCompleted = true;
-#endif
     }
 
     auto event = window->getEvent();
@@ -160,8 +144,6 @@ void Application::run() {
 
 Application::~Application() {
   delete m_VertexArray;
-  delete m_Position;
-  delete m_Indices;
   delete m_Camera;
   delete m_Shader;
   delete m_MsaaFb;
