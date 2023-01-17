@@ -1,12 +1,15 @@
 #ifndef MESH_H
 #define MESH_H
 
-#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
-#include <glm/gtx/hash.hpp>
 #include <string>
 #include <unordered_map>
 #include <vector>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtx/hash.hpp>
+
+#define FLOAT GL_FLOAT
 
 struct Vertex {
   glm::vec3 pos;
@@ -29,6 +32,7 @@ enum MeshStatus : uint8_t {
 
 struct Mesh {
   std::vector<Vertex> vertices;
+  std::vector<glm::vec3> normals;
   std::vector<uint32_t> indices;
   glm::mat4 localTransform;
   MeshStatus status = MeshStatus::Undefined;

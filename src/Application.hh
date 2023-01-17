@@ -20,7 +20,9 @@ class Application {
     #version 450
 
     layout (location = 0) in vec3 position;
+    layout (location = 1) in vec3 normal;
     out vec3 pos;
+    out vec3 nor;
 
     uniform mat4 modelViewProjection;
     uniform mat4 transform;
@@ -28,6 +30,7 @@ class Application {
     void main() {
         gl_Position = modelViewProjection * transform * vec4(position, 1.0f);
         pos = position;
+        nor = normal;
     }
   )";
 
@@ -35,11 +38,11 @@ class Application {
     #version 450
 
     in vec3 pos;
+    in vec3 nor;
     out vec4 color;
 
     void main() {
-        vec3 normal = normalize(cross(dFdx(pos), dFdy(pos)));
-        color = vec4(0.5 + 0.5 * normal, 1.0f);
+        color = vec4(0.5 + 0.5 * nor, 1.0f);
     }
   )";
 
@@ -55,9 +58,7 @@ private:
   Mesh* m_Mesh;
   Shader* m_Shader;
   Camera* m_Camera;
-  Buffer<Vertex, GL_ARRAY_BUFFER>* m_Position;
-  Buffer<uint32_t, GL_ELEMENT_ARRAY_BUFFER>* m_Indices;
-  VertexArray<uint32_t>* m_VertexArray;
+  VertexArray* m_VertexArray;
   bool VAOSetupCompleted = false;
   bool invalidateFuture = false;
 

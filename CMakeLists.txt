@@ -16,6 +16,7 @@ set(SOURCES
     src/Mesh.cc
     src/ImGuiLayer.cc
     src/Application.cc
+    src/VertexArray.cc
     src/utils.cc
 
     ${IMGUI_DIR}/imgui.cpp
