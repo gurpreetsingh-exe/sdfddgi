@@ -72,32 +72,37 @@ static void processAttributeAccessor(const tinygltf::Model& model,
                                      const tinygltf::Accessor& accessor,
                                      Mesh* r_Mesh) {
   const auto& bufferView = model.bufferViews.at(accessor.bufferView);
-  const auto& buffer = model.buffers.at(bufferView.buffer);
+  const auto& __buffer = model.buffers.at(bufferView.buffer);
+
+  const float* buffer = reinterpret_cast<const float*>(
+      __buffer.data.data() + bufferView.byteOffset + accessor.byteOffset);
 
   if (name == "POSITION") {
-    const float* posBuffer = reinterpret_cast<const float*>(
-        buffer.data.data() + bufferView.byteOffset + accessor.byteOffset);
-
     for (size_t i = 0; i < accessor.count; ++i) {
       Vertex v;
       v.pos = {
-          posBuffer[i * 3 + 0],
-          posBuffer[i * 3 + 2],
-          posBuffer[i * 3 + 1],
+          buffer[i * 3 + 0],
+          buffer[i * 3 + 2],
+          buffer[i * 3 + 1],
       };
       r_Mesh->vertices.push_back(v);
     }
   } else if (name == "NORMAL") {
-    const float* posBuffer = reinterpret_cast<const float*>(
-        buffer.data.data() + bufferView.byteOffset + accessor.byteOffset);
-
     for (size_t i = 0; i < accessor.count; ++i) {
       glm::vec3 normal = {
-          posBuffer[i * 3 + 0],
-          posBuffer[i * 3 + 1],
-          posBuffer[i * 3 + 2],
+          buffer[i * 3 + 0],
+          buffer[i * 3 + 1],
+          buffer[i * 3 + 2],
       };
       r_Mesh->normals.push_back(normal);
+    }
+  } else if (name == "TEXCOORD_0") {
+    for (size_t i = 0; i < accessor.count; ++i) {
+      glm::vec2 texCoord = {
+          buffer[i * 2 + 0],
+          buffer[i * 2 + 1],
+      };
+      r_Mesh->texCoords.push_back(texCoord);
     }
   }
 }

@@ -33,6 +33,7 @@ enum MeshStatus : uint8_t {
 struct Mesh {
   std::vector<Vertex> vertices;
   std::vector<glm::vec3> normals;
+  std::vector<glm::vec2> texCoords;
   std::vector<uint32_t> indices;
   glm::mat4 localTransform;
   MeshStatus status = MeshStatus::Undefined;

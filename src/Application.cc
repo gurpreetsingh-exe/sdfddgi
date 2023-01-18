@@ -79,7 +79,16 @@ void Application::run() {
               .size = 3,
               .data = m_Mesh->normals.data(),
               .byteSize = m_Mesh->normals.size() * 12,
-          }};
+          },
+          {
+              .type = FLOAT,
+              .normalized = false,
+              .stride = 8,
+              .size = 2,
+              .data = m_Mesh->texCoords.data(),
+              .byteSize = m_Mesh->texCoords.size() * 8,
+          },
+      };
       m_VertexArray->addVertexBuffers(layouts);
       m_VertexArray->setIndexBuffer(new Buffer<GL_ELEMENT_ARRAY_BUFFER>(
           m_Mesh->indices.data(), m_Mesh->indices.size() * sizeof(uint32_t)));
