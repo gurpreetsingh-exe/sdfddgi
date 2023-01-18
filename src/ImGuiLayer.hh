@@ -8,6 +8,7 @@
 struct Properties {
   float cameraFov = 90.0f;
   size_t meshVertices;
+  bool reloadShaders = false;
 };
 
 class ImGuiLayer {

@@ -67,6 +67,7 @@ void ImGuiLayer::onUpdate(Framebuffer<GL_TEXTURE_2D>& framebuffer) {
   ImGui::Begin("Properties");
   ImGui::Text("Camera:");
   ImGui::SliderFloat("Fov", &props.cameraFov, 10.0, 120.0);
+  props.reloadShaders = ImGui::Button("Reload Shaders");
   ImGui::End();
 
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));

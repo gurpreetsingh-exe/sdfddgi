@@ -16,40 +16,8 @@ class Application {
   static constexpr uint32_t width = 600;
   static constexpr uint32_t height = 600;
   static constexpr std::string_view name = "sdfddgi";
-  const char* vert = R"(
-    #version 450
-
-    layout (location = 0) in vec3 position;
-    layout (location = 1) in vec3 normal;
-    layout (location = 2) in vec2 texCoord;
-    out vec3 pos;
-    out vec3 nor;
-    out vec2 uv;
-
-    uniform mat4 modelViewProjection;
-    uniform mat4 transform;
-
-    void main() {
-        gl_Position = modelViewProjection * transform * vec4(position, 1.0f);
-        pos = position;
-        nor = normal;
-        uv = texCoord;
-    }
-  )";
-
-  const char* frag = R"(
-    #version 450
-
-    in vec3 pos;
-    in vec3 nor;
-    in vec2 uv;
-    out vec4 color;
-
-    void main() {
-        vec3 col = mix(vec3(uv, 0.0), 0.5 + 0.5 * nor, step(pos.y + 35, 0.0));
-        color = vec4(col, 1.0f);
-    }
-  )";
+  const char* vert = "../shaders/vertex.glsl";
+  const char* frag = "../shaders/fragment.glsl";
 
 public:
   Application();

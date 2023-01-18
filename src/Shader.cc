@@ -2,11 +2,15 @@
 #include <GL/glew.h>
 // clang-format on
 #include "Shader.hh"
+#include "utils.hh"
 #include <glm/gtc/type_ptr.hpp>
 #include <stdexcept>
 #include <vector>
 
-Shader::Shader(const std::string& vertSrc, const std::string& fragSrc) {
+Shader::Shader(const std::string& vertPath, const std::string& fragPath) {
+  const auto vertSrc = readFile(vertPath);
+  const auto fragSrc = readFile(fragPath);
+
   const char* vert = vertSrc.c_str();
   const char* frag = fragSrc.c_str();
 

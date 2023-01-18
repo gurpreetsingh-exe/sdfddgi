@@ -95,6 +95,13 @@ void Application::run() {
       VAOSetupCompleted = true;
     }
 
+    if (m_ImGuiLayer->props.reloadShaders) {
+      delete m_Shader;
+      m_Shader = new Shader(vert, frag);
+      m_Shader->bind();
+      m_ImGuiLayer->props.reloadShaders = false;
+    }
+
     auto event = window->getEvent();
     m_Camera->onUpdate(event);
 
