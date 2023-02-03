@@ -148,7 +148,6 @@ static void calcTransform(const tinygltf::Node& node, Mesh* r_Mesh,
                           glm::mat4& worldTransform,
                           const glm::mat4 parentTransform) {
   if (node.matrix.size() == 16) {
-    std::cout << "nice" << std::endl;
     const auto t = node.matrix;
     for (size_t i = 0; i < 3; ++i) {
       for (size_t j = 0; j < 3; ++j) {

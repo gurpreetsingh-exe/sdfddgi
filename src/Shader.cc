@@ -102,4 +102,15 @@ void Shader::uploadUniformMat4(const std::string& name, const glm::mat4& mat) {
   glUniformMatrix4fv(matLoc, 1, GL_FALSE, glm::value_ptr(mat));
 }
 
+void Shader::uploadUniformSampler(const std::string& name, uint32_t textureId) {
+  uint32_t samplerLoc = glGetUniformLocation(m_Id, name.c_str());
+  glUniform1i(samplerLoc, textureId);
+}
+
+void Shader::uploadUniformSamplers(const std::string& name,
+                                   const std::vector<int32_t>& textureIds) {
+  uint32_t samplerLoc = glGetUniformLocation(m_Id, name.c_str());
+  glUniform1iv(samplerLoc, textureIds.size(), textureIds.data());
+}
+
 Shader::~Shader() { glDeleteProgram(m_Id); }

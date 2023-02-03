@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <glm/glm.hpp>
 #include <string>
+#include <vector>
 
 class Shader {
 public:
@@ -23,6 +24,10 @@ public:
 
   void uploadUniformMat3(const std::string& name, const glm::mat3& mat);
   void uploadUniformMat4(const std::string& name, const glm::mat4& mat);
+
+  void uploadUniformSampler(const std::string& name, uint32_t textureId);
+  void uploadUniformSamplers(const std::string& name,
+                             const std::vector<int32_t>& textureIds);
 
 private:
   uint32_t m_Id;

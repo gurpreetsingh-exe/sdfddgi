@@ -39,6 +39,8 @@ Window::Window(uint32_t width, uint32_t height, const char* name)
   glfwSetKeyCallback(m_Window, keyCallback);
   glfwSetCursorPosCallback(m_Window, mouseCallback);
   glfwSetWindowUserPointer(m_Window, m_Event);
+  /// disable v-sync
+  // glfwSwapInterval(0);
 }
 
 void Window::isRunning(std::function<void()> func) {
