@@ -7,7 +7,7 @@
 
 struct Properties {
   float cameraFov = 90.0f;
-  size_t meshVertices;
+  size_t meshVertices = 0;
   bool reloadShaders = false;
 };
 

@@ -5,7 +5,10 @@ in vec3 nor;
 in vec2 uv;
 out vec4 color;
 
+uniform sampler2D baseColor;
+
 void main() {
-    color = vec4(uv, 0.0f, 1.0f);
+    float shadow = dot(nor, normalize(vec3(10)));
+    color = texture(baseColor, uv) * shadow;
 }
 

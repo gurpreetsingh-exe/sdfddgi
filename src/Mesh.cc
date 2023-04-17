@@ -10,36 +10,37 @@
 #include "tiny_gltf.h"
 #include <glm/gtx/quaternion.hpp>
 
-Mesh* Mesh::fromObj(const std::string& filepath) {
-  auto mesh = new Mesh();
-  tinyobj::ObjReader reader;
-  tinyobj::ObjReaderConfig config;
-  reader.ParseFromFile(filepath, config);
-
-  if (!reader.Valid()) {
-    throw std::runtime_error(reader.Warning() + reader.Error());
-  }
-
-  std::unordered_map<Vertex, uint32_t> uniqueVertices;
-  const auto& attributes = reader.GetAttrib();
-
-  for (const auto& shape : reader.GetShapes()) {
-    for (const auto& index : shape.mesh.indices) {
-      Vertex vertex;
-      vertex.pos = {attributes.vertices[3 * index.vertex_index + 0],
-                    attributes.vertices[3 * index.vertex_index + 1],
-                    attributes.vertices[3 * index.vertex_index + 2]};
-
-      if (uniqueVertices.count(vertex) == 0) {
-        uniqueVertices[vertex] = static_cast<uint32_t>(mesh->vertices.size());
-        mesh->vertices.push_back(vertex);
-      }
-
-      mesh->indices.push_back(uniqueVertices[vertex]);
-    }
-  }
-  return mesh;
-}
+// Mesh* Mesh::fromObj(const std::string& filepath) {
+//   auto mesh = new Mesh();
+//   tinyobj::ObjReader reader;
+//   tinyobj::ObjReaderConfig config;
+//   reader.ParseFromFile(filepath, config);
+//
+//   if (!reader.Valid()) {
+//     throw std::runtime_error(reader.Warning() + reader.Error());
+//   }
+//
+//   std::unordered_map<Vertex, uint32_t> uniqueVertices;
+//   const auto& attributes = reader.GetAttrib();
+//
+//   for (const auto& shape : reader.GetShapes()) {
+//     for (const auto& index : shape.mesh.indices) {
+//       Vertex vertex;
+//       vertex.pos = {attributes.vertices[3 * index.vertex_index + 0],
+//                     attributes.vertices[3 * index.vertex_index + 1],
+//                     attributes.vertices[3 * index.vertex_index + 2]};
+//
+//       if (uniqueVertices.count(vertex) == 0) {
+//         uniqueVertices[vertex] =
+//         static_cast<uint32_t>(mesh->vertices.size());
+//         mesh->vertices.push_back(vertex);
+//       }
+//
+//       mesh->indices.push_back(uniqueVertices[vertex]);
+//     }
+//   }
+//   return mesh;
+// }
 
 static std::string GetFilePathExtension(const std::string& FileName) {
   if (FileName.find_last_of(".") != std::string::npos)
@@ -61,9 +62,10 @@ static void readIndices(const tinygltf::Accessor& accessor,
 
   const T* indexBuffer = reinterpret_cast<const T*>(
       buffer.data.data() + buffer_view.byteOffset + accessor.byteOffset);
-  size_t indexLen = mesh->vertices.size();
+  uint32_t& imageId = mesh->model.imageId;
+  std::vector<uint32_t>& indices = mesh->model.mesh[imageId].indices;
   for (uint32_t i = 0; i < accessor.count; i++) {
-    mesh->indices.push_back(indexBuffer[i] + indexLen);
+    indices.push_back(indexBuffer[i]);
   }
 }
 
@@ -76,6 +78,8 @@ static void processAttributeAccessor(const tinygltf::Model& model,
 
   const float* buffer = reinterpret_cast<const float*>(
       __buffer.data.data() + bufferView.byteOffset + accessor.byteOffset);
+  uint32_t& imageId = r_Mesh->model.imageId;
+  RMesh& mesh = r_Mesh->model.mesh[imageId];
 
   if (name == "POSITION") {
     for (size_t i = 0; i < accessor.count; ++i) {
@@ -85,7 +89,7 @@ static void processAttributeAccessor(const tinygltf::Model& model,
           buffer[i * 3 + 2],
           buffer[i * 3 + 1],
       };
-      r_Mesh->vertices.push_back(v);
+      mesh.vertices.push_back(v);
     }
   } else if (name == "NORMAL") {
     for (size_t i = 0; i < accessor.count; ++i) {
@@ -94,7 +98,7 @@ static void processAttributeAccessor(const tinygltf::Model& model,
           buffer[i * 3 + 1],
           buffer[i * 3 + 2],
       };
-      r_Mesh->normals.push_back(normal);
+      mesh.normals.push_back(normal);
     }
   } else if (name == "TEXCOORD_0") {
     for (size_t i = 0; i < accessor.count; ++i) {
@@ -102,7 +106,7 @@ static void processAttributeAccessor(const tinygltf::Model& model,
           buffer[i * 2 + 0],
           buffer[i * 2 + 1],
       };
-      r_Mesh->texCoords.push_back(texCoord);
+      mesh.texCoords.push_back(texCoord);
     }
   }
 }
@@ -129,12 +133,30 @@ static void processIndexAccessor(const tinygltf::Model& model,
 
 static void processPrimitive(const tinygltf::Model& model,
                              const tinygltf::Primitive& prim, Mesh* r_Mesh) {
+  const auto& mat = model.materials[prim.material];
+  const auto& tex =
+      model.textures[mat.pbrMetallicRoughness.baseColorTexture.index];
+  const auto& image = model.images[tex.source];
+  if (!r_Mesh->model.images.contains(image.uri)) {
+    r_Mesh->model.images.insert({image.uri, r_Mesh->model.imageId});
+  }
+  if (!r_Mesh->model.mesh.contains(r_Mesh->model.imageId)) {
+    r_Mesh->model.mesh.insert({r_Mesh->model.imageId, RMesh()});
+  }
+
+  r_Mesh->model.mesh[r_Mesh->model.imageId].image = {
+      .image = image.image,
+      .width = image.width,
+      .height = image.height,
+      .pixel_type = image.pixel_type,
+  };
   if (prim.indices != -1) {
     processIndexAccessor(model, model.accessors.at(prim.indices), r_Mesh);
   }
   for (const auto& [name, id] : prim.attributes) {
     processAttributeAccessor(model, name, model.accessors.at(id), r_Mesh);
   }
+  r_Mesh->model.imageId++;
 }
 
 static void processMesh(const tinygltf::Model& model,
